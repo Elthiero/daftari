@@ -97,6 +97,21 @@ daftari/
 └── LICENSE              # MIT
 ```
 
+## Abuse protection
+
+The public demo protects the API key and keeps the app usable for everyone:
+
+| Guard | Default | Env variable |
+|---|---|---|
+| Photo reads per visitor per hour | 10 | `LIMIT_READS_PER_HOUR` |
+| Questions per visitor per hour | 30 | `LIMIT_ASKS_PER_HOUR` |
+| Gemma calls per day, all visitors | 500 | `LIMIT_GLOBAL_PER_DAY` |
+| Pause between two requests | 4 s | `COOLDOWN_SECONDS` |
+| Max photo size | 8 MB | `MAX_UPLOAD_MB` |
+| Max question length | 300 characters | `MAX_QUESTION_CHARS` |
+
+Uploads are checked to be real images (oversized "decompression bomb" images are refused), each page is capped at 80 rows and a session at 400 records, the assistant only answers questions about the shop records, and visitors see friendly messages instead of raw API errors. Limits are kept in memory per server, so they reset when the app restarts.
+
 ## Roadmap
 
 - **WhatsApp channel**: send a photo, get the summary back
