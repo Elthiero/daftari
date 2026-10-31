@@ -1,8 +1,8 @@
-# 📒 Daftari
+# 📒 dukaAI
 
 **Keep your paper notebook. Take one photo. Get your business records, totals and answers.**
 
-Daftari turns the handwritten sales notebook every small shop already uses into clean digital records and business insights, from a single phone photo. Powered by **Gemma 4**, an open-weight model, through the Gemini API.
+dukaAI turns the handwritten sales notebook every small shop already uses into clean digital records and business insights, from a single phone photo. Powered by **Gemma 4**, an open-weight model, through the Gemini API.
 
 🔗 **Live demo:** [daftari-zu84.onrender.com](https://daftari-zu84.onrender.com/)
 *(Hosted on Render's free tier: the first load can take up to a minute while the server wakes up.)*
@@ -10,7 +10,7 @@ Daftari turns the handwritten sales notebook every small shop already uses into 
 Built at **Hacktoberfest Hack Day Kigali 2026** (Build54 Africa, ALX Rwanda, GDG Rwanda, MLH).
 Submitted to: **Best Use of Gemma 4** and **Best Open-Source AI Project**.
 
-![Daftari dashboard](docs/dashboard.png)
+![dukaAI dashboard](docs/dashboard.png)
 
 ## The problem
 
@@ -18,7 +18,7 @@ Most small businesses in Rwanda (boutiques, market stalls, butcheries, salons) r
 
 ## The solution
 
-Daftari does not ask owners to change their habit. They keep writing in their notebook and take one photo a day. Daftari:
+dukaAI does not ask owners to change their habit. They keep writing in their notebook and take one photo a day. dukaAI:
 
 1. **Reads the handwriting**, mixing Kinyarwanda, French and English, including local terms like *ideni* (debt) and shorthand like *1.5k*
 2. **Builds a structured table**: date, item, quantity, unit price, total, customer, paid or credit
@@ -40,7 +40,7 @@ Model: **`gemma-4-26b-a4b-it`** (Gemma 4, open weights) via the Gemini API, usin
 | `ask_question()` | Answers questions grounded only in the saved records, in the user's language |
 | `generate()` | Shared call with thinking off, temperature 0 and capped output for fast, consistent answers |
 
-Because Gemma is open weight, Daftari can later run fully offline on a local device, which matters for shops with unreliable internet, and avoids lock-in to a single provider.
+Because Gemma is open weight, dukaAI can later run fully offline on a local device, which matters for shops with unreliable internet, and avoids lock-in to a single provider.
 
 ## Performance
 
