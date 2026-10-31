@@ -4,8 +4,8 @@
 
 DukaAI turns the handwritten sales notebook every small shop already uses into clean digital records and business insights, from a single phone photo. Powered by **Gemma 4**, an open-weight model, through the Gemini API.
 
-🔗 **Live demo:** [daftari-zu84.onrender.com](https://daftari-zu84.onrender.com/)
-*(Hosted on Render's free tier: the first load can take up to a minute while the server wakes up.)*
+🔗 **Live demo:** [dukaai.apps.thalesops.com](https://dukaai.apps.thalesops.com) (mirror: [daftari-zu84.onrender.com](https://daftari-zu84.onrender.com/))
+*(Primary deployment on ThalesOps. The Render mirror runs on a free tier, so its first load can take up to a minute while it wakes up.)*
 
 Built at **Hacktoberfest Hack Day Kigali 2026** (Build54 Africa, ALX Rwanda, GDG Rwanda, MLH).
 Submitted to: **Best Use of Gemma 4** and **Best Open-Source AI Project**.
