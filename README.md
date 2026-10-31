@@ -106,9 +106,13 @@ daftari/
 - **Fine-tuning** on a localized dataset of Rwandan shop vocabulary
 - **Production stack**: FastAPI backend, React mobile web app, persistent database, Docker
 
-## Author
+## Team
 
-**Thierry Donambi** · [GitHub](https://github.com/Elthiero) · [LinkedIn](https://linkedin.com/in/thierry-donambi)
+- Potiphar Gaye Vaye
+- Aime Serge Ukobizaba
+- Ahourdet Donambi Thierry ([GitHub](https://github.com/Elthiero), [LinkedIn](https://linkedin.com/in/thierry-donambi))
+- Ndatimana Jean de Dieu
+- Apongseh Iyan
 
 ## License
 
