@@ -139,14 +139,34 @@ def extract_entries(image_bytes: bytes) -> pd.DataFrame:
     """Cached by image content: reading the same photo twice is instant."""
     client = get_client()
     small = shrink_image(image_bytes)
-    response = client.models.generate_content(
-        model=MODEL,
-        contents=[
-            types.Part.from_bytes(data=small, mime_type="image/jpeg"),
-            EXTRACT_PROMPT,
-        ],
+    response = generate(
+        [types.Part.from_bytes(data=small, mime_type="image/jpeg"), EXTRACT_PROMPT],
+        max_tokens=2048,
     )
-    return clean_frame(pd.DataFrame(parse_json_array(response.text)))
+    usage = response.usage_metadata
+    stats = {
+        "thinking_tokens": getattr(usage, "thoughts_token_count", None) or 0,
+        "output_tokens": getattr(usage, "candidates_token_count", None) or 0,
+    }
+    return clean_frame(pd.DataFrame(parse_json_array(response.text))), stats
+
+
+def generate(contents, max_tokens: int = 1024):
+    """Call Gemma with thinking turned off and a capped output, which is much faster.
+    If the API rejects the thinking setting for this model, retry without it."""
+    client = get_client()
+    fast = types.GenerateContentConfig(
+        temperature=0,
+        max_output_tokens=max_tokens,
+        thinking_config=types.ThinkingConfig(thinking_level="minimal"),
+    )
+    try:
+        return client.models.generate_content(model=MODEL, contents=contents, config=fast)
+    except Exception as e:
+        if "think" not in str(e).lower():
+            raise
+        plain = types.GenerateContentConfig(temperature=0, max_output_tokens=max_tokens)
+        return client.models.generate_content(model=MODEL, contents=contents, config=plain)
 
 
 def ask_question(df: pd.DataFrame, question: str) -> str:
@@ -158,8 +178,7 @@ def ask_question(df: pd.DataFrame, question: str) -> str:
         "(English, French or Kinyarwanda).\n\n"
         f"Records (CSV):\n{df.to_csv(index=False)}\n\nQuestion: {question}"
     )
-    response = client.models.generate_content(model=MODEL, contents=prompt)
-    return response.text
+    return generate(prompt, max_tokens=512).text
 
 
 def rwf(x) -> str:
@@ -215,8 +234,13 @@ with tab_scan:
                 with st.spinner("Gemma is reading the handwriting..."):
                     try:
                         t0 = time.perf_counter()
-                        st.session_state.draft = extract_entries(source.getvalue()).copy()
-                        st.caption(f"⚡ Read in {time.perf_counter() - t0:.1f} s")
+                        df_read, stats = extract_entries(source.getvalue())
+                        st.session_state.draft = df_read.copy()
+                        st.caption(
+                            f"⚡ Read in {time.perf_counter() - t0:.1f} s · "
+                            f"{stats['output_tokens']} output tokens · "
+                            f"{stats['thinking_tokens']} thinking tokens"
+                        )
                     except Exception as e:
                         st.error(f"Could not read the page: {e}")
 
