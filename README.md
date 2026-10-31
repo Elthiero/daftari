@@ -73,6 +73,7 @@ Get a free API key at [Google AI Studio](https://aistudio.google.com/apikey).
 | `GEMINI_API_KEY` | Yes | | Gemini API key |
 | `GEMMA_MODEL` | No | `gemma-4-26b-a4b-it` | Or `gemma-4-31b-it` |
 | `MAX_IMAGE_SIDE` | No | `1280` | Max photo size in px sent to Gemma |
+| `DEMO_DATA` | No | `1` | Load a 3-day demo shop for new visitors (`0` to start empty) |
 
 ## Deploy on Render
 

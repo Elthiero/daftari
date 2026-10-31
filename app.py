@@ -45,18 +45,38 @@ Rules:
 - If a value is unreadable, use null. Do not invent entries.
 """
 
-# Sample page used only when the user clicks "Load sample data" (clearly labelled in the UI).
+# Demo shop: three days of a small Kigali shop, loaded by default so first-time
+# visitors can explore the dashboard and ask questions right away.
+# Set DEMO_DATA=0 to start every visitor with an empty notebook instead.
+DEMO_DATA = os.getenv("DEMO_DATA", "1") != "0"
 SAMPLE_ROWS = [
-    ["2026-10-31", "Isukari 2kg", 2, 1500, 3000, None, "paid"],
-    ["2026-10-31", "Umuceri 3kg", 3, 1300, 3900, None, "paid"],
-    ["2026-10-31", "Amavuta 1L", 1, 3200, 3200, None, "paid"],
-    ["2026-10-31", "Savon", 2, 600, 1200, None, "paid"],
-    ["2026-10-31", "Amagi", 10, 150, 1500, None, "paid"],
-    ["2026-10-31", "Umugati", 2, 1000, 2000, None, "paid"],
-    ["2026-10-31", "Amata", 4, 500, 2000, None, "paid"],
-    ["2026-10-31", "Airtime MTN", 1, 1000, 1000, None, "paid"],
-    ["2026-10-31", "Umuceri 2kg", 2, 1300, 2600, "Jean", "credit"],
-    ["2026-10-31", "Amavuta 1L", 1, 3200, 3200, "Mukamana", "credit"],
+    # 29 October
+    ["2026-10-29", "Isukari", 2, 1500, 3000, None, "paid"],
+    ["2026-10-29", "Umuceri", 3, 1300, 3900, None, "paid"],
+    ["2026-10-29", "Isabune", 2, 500, 1000, None, "paid"],
+    ["2026-10-29", "Amata", 3, 500, 1500, None, "paid"],
+    ["2026-10-29", "Fanta", 2, 700, 1400, None, "paid"],
+    ["2026-10-29", "Amagi", 6, 150, 900, None, "paid"],
+    ["2026-10-29", "Umuceri", 2, 1300, 2600, "Kalisa", "credit"],
+    # 30 October
+    ["2026-10-30", "Ifu y'ibigori", 3, 1000, 3000, None, "paid"],
+    ["2026-10-30", "Ibishyimbo", 2, 1200, 2400, None, "paid"],
+    ["2026-10-30", "Amavuta", 1, 3200, 3200, None, "paid"],
+    ["2026-10-30", "Umugati", 2, 1500, 3000, None, "paid"],
+    ["2026-10-30", "Amazi", 4, 500, 2000, None, "paid"],
+    ["2026-10-30", "Umunyu", 1, 400, 400, None, "paid"],
+    ["2026-10-30", "Airtime MTN", 1, 2000, 2000, None, "paid"],
+    ["2026-10-30", "Amavuta", 1, 3200, 3200, "Uwase", "credit"],
+    ["2026-10-30", "Isukari", 1, 1500, 1500, "Kalisa", "credit"],
+    # 31 October
+    ["2026-10-31", "Umuceri", 5, 1300, 6500, None, "paid"],
+    ["2026-10-31", "Isukari", 3, 1500, 4500, None, "paid"],
+    ["2026-10-31", "Isabune", 4, 600, 2400, None, "paid"],
+    ["2026-10-31", "Fanta", 5, 700, 3500, None, "paid"],
+    ["2026-10-31", "Amata", 2, 500, 1000, None, "paid"],
+    ["2026-10-31", "Amagi", 12, 150, 1800, None, "paid"],
+    ["2026-10-31", "Umugati", 1, 1500, 1500, None, "paid"],
+    ["2026-10-31", "Ibishyimbo", 3, 1200, 3600, "Mugisha", "credit"],
 ]
 
 st.set_page_config(page_title="DukaAI", page_icon="📒", layout="wide")
@@ -321,7 +341,12 @@ def rwf(x) -> str:
 
 # ---------- State ----------
 if "records" not in st.session_state:
-    st.session_state.records = pd.DataFrame(columns=COLUMNS)
+    if DEMO_DATA:
+        st.session_state.records = clean_frame(pd.DataFrame(SAMPLE_ROWS, columns=COLUMNS))
+        st.session_state.demo = True
+    else:
+        st.session_state.records = pd.DataFrame(columns=COLUMNS)
+        st.session_state.demo = False
 if "chat" not in st.session_state:
     st.session_state.chat = []
 
@@ -412,6 +437,11 @@ with tab_scan:
                 if len(st.session_state.records) + len(edited) > MAX_RECORDS:
                     st.warning(f"This demo keeps up to {MAX_RECORDS} records. Download your CSV and clear records to continue.")
                     st.stop()
+                if st.session_state.get("demo"):
+                    # The first real page replaces the demo shop
+                    st.session_state.records = pd.DataFrame(columns=COLUMNS)
+                    st.session_state.chat = []
+                    st.session_state.demo = False
                 st.session_state.records = pd.concat(
                     [st.session_state.records, clean_frame(edited)], ignore_index=True
                 )
@@ -426,10 +456,15 @@ with tab_dash:
     df = st.session_state.records
     if df.empty:
         st.markdown('<p class="muted">No records yet. Scan your first notebook page to see your totals here.</p>', unsafe_allow_html=True)
-        if st.button("Load sample data (for exploring the dashboard)"):
+        if st.button("Load the demo shop (three days of sample sales)"):
             st.session_state.records = clean_frame(pd.DataFrame(SAMPLE_ROWS, columns=COLUMNS))
+            st.session_state.demo = True
+            st.session_state.chat = []
             st.rerun()
     else:
+        if st.session_state.get("demo"):
+            st.info("You're exploring a demo shop with three days of sample sales. "
+                    "Scan your own notebook page and it will replace the demo data.")
         paid = df.loc[df["status"] == "paid", "total"].sum()
         credit = df.loc[df["status"] == "credit", "total"].sum()
         c1, c2, c3, c4 = st.columns(4)
@@ -438,6 +473,19 @@ with tab_dash:
             st.metric("Owed to you", rwf(credit))
         c3.metric("Entries", len(df))
         c4.metric("Total sold", rwf(paid + credit))
+
+        if df["date"].nunique() > 1:
+            st.markdown("#### Sales by day")
+            daily = (df.assign(Status=df["status"].map({"paid": "Cash", "credit": "On credit"}))
+                     .groupby(["date", "Status"])["total"].sum().reset_index())
+            day_chart = alt.Chart(daily).mark_bar(cornerRadiusEnd=3).encode(
+                x=alt.X("date:N", title=None, axis=alt.Axis(labelAngle=0)),
+                y=alt.Y("total:Q", title="RWF", stack=True),
+                color=alt.Color("Status:N", scale=alt.Scale(domain=["Cash", "On credit"], range=["#1F3FA8", "#C8402F"]),
+                                legend=alt.Legend(orient="top", title=None)),
+                tooltip=["date", "Status", alt.Tooltip("total:Q", format=",.0f", title="RWF")],
+            ).properties(height=220)
+            st.altair_chart(day_chart, width="stretch")
 
         g1, g2 = st.columns([1.5, 1], gap="large")
         with g1:
@@ -471,9 +519,10 @@ with tab_dash:
         b1.download_button(
             "Download CSV", df.to_csv(index=False), "dukaai_records.csv", "text/csv"
         )
-        if b2.button("Clear all records"):
+        if b2.button("Clear demo data" if st.session_state.get("demo") else "Clear all records"):
             st.session_state.records = pd.DataFrame(columns=COLUMNS)
             st.session_state.chat = []
+            st.session_state.demo = False
             st.rerun()
 
 # ---------- Tab 3: Ask ----------
@@ -483,8 +532,8 @@ with tab_ask:
         st.info("Save some records first, then ask questions about your business.")
     else:
         st.markdown(
-            '<p class="muted">Try asking: “Who owes me money?”, “What sold most today?” or '
-            "“Combien j'ai vendu aujourd'hui ?”</p>",
+            '<p class="muted">Try asking: “Who owes me money?”, “How much does Kalisa owe me?”, '
+            "“Which day did I sell the most?” or “Combien j'ai vendu en 3 jours ?”</p>",
             unsafe_allow_html=True,
         )
         for role, msg in st.session_state.chat:
