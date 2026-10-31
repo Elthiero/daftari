@@ -8,7 +8,7 @@ DukaAI turns the handwritten sales notebook every small shop already uses into c
 *(Primary deployment on ThalesOps. The Render mirror runs on a free tier, so its first load can take up to a minute while it wakes up.)*
 
 🥈 **Second place** at **Hacktoberfest Hack Day Kigali 2026** (Build54 Africa, ALX Rwanda, GDG Rwanda, MLH), built in 4 hours.
-Submitted to: **Best Use of Gemma 4** and **Best Open-Source AI Project**. Pitch deck: [docs/DukaAI_Pitch.pptx](docs/DukaAI_Pitch.pptx)
+Submitted to: **Best Use of Gemma 4** and **Best Open-Source AI Project**. Pitch deck: [docs/DukaAI_Pitch.pptx](docs/DukaAI_Pitch.pdf)
 
 **Try it in 10 seconds:** the live app opens on a demo shop with three days of sample sales. Open **My business** to see the totals, or ask **"How much does Kalisa owe me?"** in **Ask DukaAI**. Scan your own notebook page and it replaces the demo data.
 
