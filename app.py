@@ -1,4 +1,4 @@
-"""Daftari: turn a photo of a handwritten sales notebook into digital records.
+"""DukaAI: turn a photo of a handwritten sales notebook into digital records.
 
 Powered by Gemma 4 (gemma-4-26b-a4b-it) through the Gemini API.
 Setup: copy .env.example to .env, add your key, then run: streamlit run app.py
@@ -9,6 +9,7 @@ import os
 import re
 import time
 
+import altair as alt
 import pandas as pd
 from PIL import Image, ImageOps
 import streamlit as st
@@ -54,38 +55,47 @@ SAMPLE_ROWS = [
     ["2026-10-31", "Amavuta 1L", 1, 3200, 3200, "Mukamana", "credit"],
 ]
 
-st.set_page_config(page_title="Daftari", page_icon="📒", layout="wide")
+st.set_page_config(page_title="DukaAI", page_icon="📒", layout="wide")
 
 st.markdown(
     """
 <style>
-.block-container {padding-top: 3.2rem; max-width: 1200px;}
+@import url('https://fonts.googleapis.com/css2?family=Kalam:wght@700&family=Figtree:wght@400;500;600;700;800&display=swap');
+:root {
+  --paper: #FBFBF7; --rule: #CBD9EE; --ink: #1F3FA8; --margin: #C8402F;
+  --graphite: #23262B; --muted: #626875; --line: #E3E6EC;
+}
+html, body, p, li, label, input, textarea, button p, [data-testid="stMetricValue"], [data-baseweb="tab"] p {font-family: 'Figtree', sans-serif;}
+.block-container {padding-top: 3.2rem; max-width: 1180px;}
+h1, h2, h3, h4 {font-family: 'Figtree', sans-serif; color: var(--graphite); letter-spacing: -0.01em;}
+
+/* The one bold element: a strip of ruled exercise-book paper */
 .hero {
-  background: linear-gradient(135deg, #0E7C66 0%, #0B4F43 100%);
-  color: #fff; padding: 1.8rem 2rem; border-radius: 20px; margin-bottom: 1.4rem;
-  box-shadow: 0 8px 24px rgba(14,124,102,.18);
+  position: relative; padding: 1.4rem 1.6rem 1.6rem 5.2rem; margin-bottom: 1.6rem;
+  background-color: #FFFFFF;
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 33px, var(--rule) 33px, var(--rule) 34px);
+  border: 1px solid var(--line); border-radius: 4px;
 }
-.hero .title {font-size: 2.6rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1;}
-.hero .tagline {font-size: 1.1rem; opacity: .92; margin-top: .4rem; max-width: 640px;}
-.badge {
-  display: inline-block; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.28);
-  padding: .25rem .75rem; border-radius: 999px; font-size: .8rem; margin: .9rem .4rem 0 0;
-}
-.card {
-  background: #FFFFFF; border: 1px solid #E6DFD3; border-radius: 16px;
-  padding: 1.1rem 1.3rem; margin-bottom: 1rem;
-}
-.card h4 {margin: 0 0 .3rem 0;}
-.muted {color: #6F685C; font-size: .92rem;}
-div[data-testid="stMetric"] {
-  background: #FFFFFF; border: 1px solid #E6DFD3; border-radius: 16px;
-  padding: 1rem 1.2rem; box-shadow: 0 1px 3px rgba(0,0,0,.04);
-}
-div[data-testid="stMetricValue"] {font-weight: 800;}
-.stButton > button, .stDownloadButton > button {border-radius: 12px; font-weight: 600; padding: .5rem 1.1rem;}
+.hero::before {content: ""; position: absolute; top: 0; bottom: 0; left: 3.6rem; width: 2px; background: var(--margin); opacity: .75;}
+.hero .title {font-family: 'Kalam', 'Segoe Print', 'Bradley Hand', cursive; font-size: 3.4rem; line-height: 1; color: var(--ink); transform: rotate(-1.5deg); display: inline-block;}
+.hero .tagline {font-size: 1.12rem; color: var(--graphite); margin-top: .7rem; max-width: 60ch; line-height: 34px;}
+.hero .meta {font-size: .92rem; color: var(--muted); line-height: 34px;}
+
+.step h4 {margin: 0; font-size: 1.15rem;}
+.step p {color: var(--muted); margin: .2rem 0 .9rem 0; font-size: .95rem;}
+
+/* Metrics: plain figures on a rule, no boxes */
+div[data-testid="stMetric"] {border-top: 2px solid var(--graphite); padding-top: .6rem;}
+div[data-testid="stMetricLabel"] p {font-size: .9rem; color: var(--muted); font-weight: 500;}
+div[data-testid="stMetricValue"] {font-weight: 800; color: var(--graphite); font-variant-numeric: tabular-nums;}
+.st-key-debt div[data-testid="stMetricValue"] {color: var(--margin);}
+
+.stButton > button, .stDownloadButton > button {border-radius: 6px; font-weight: 600;}
 .stTabs [data-baseweb="tab"] {font-weight: 600; font-size: 1rem;}
-.footer {text-align: center; color: #8A8273; font-size: .85rem; margin-top: 2.5rem;}
-.footer a {color: #0E7C66;}
+.muted {color: var(--muted); font-size: .95rem;}
+.footer {color: var(--muted); font-size: .88rem; margin-top: 3rem; border-top: 1px solid var(--line); padding-top: 1rem;}
+.footer a {color: var(--ink);}
+@media (max-width: 640px) {.hero {padding-left: 3.4rem;} .hero::before {left: 2.2rem;} .hero .title {font-size: 2.6rem;}}
 </style>
 """,
     unsafe_allow_html=True,
@@ -195,18 +205,16 @@ if "chat" not in st.session_state:
 st.markdown(
     f"""
 <div class="hero">
-  <div class="title">📒 Daftari</div>
-  <div class="tagline">Keep your paper notebook. Take one photo a day.
-  Daftari turns your handwriting into clean records, totals and answers.</div>
-  <span class="badge">🧠 Gemma 4 · {MODEL}</span>
-  <span class="badge">🔓 Open weights · MIT licensed</span>
-  <span class="badge">🇷🇼 Kinyarwanda · Français · English</span>
+  <div class="title">DukaAI</div>
+  <div class="tagline">Keep writing in your notebook. Photograph the page, and DukaAI turns
+  your handwriting into records, totals and a list of who owes you money.</div>
+  <div class="meta">Reads Kinyarwanda, French and English with Gemma 4 ({MODEL}), an open model.</div>
 </div>
 """,
     unsafe_allow_html=True,
 )
 
-tab_scan, tab_dash, tab_ask = st.tabs(["📷  Scan a page", "📊  My business", "💬  Ask Daftari"])
+tab_scan, tab_dash, tab_ask = st.tabs(["Scan a page", "My business", "Ask DukaAI"])
 
 # ---------- Tab 1: Scan ----------
 with tab_scan:
@@ -214,8 +222,8 @@ with tab_scan:
 
     with left:
         st.markdown(
-            '<div class="card"><h4>1 · Your notebook page</h4>'
-            '<div class="muted">Upload a photo, or use your phone camera.</div></div>',
+            '<div class="step"><h4>1. Photograph the page</h4>'
+            '<p>Upload a photo of today\'s page, or use your phone camera.</p></div>',
             unsafe_allow_html=True,
         )
         use_camera = st.toggle("Use camera", value=False)
@@ -230,7 +238,7 @@ with tab_scan:
         )
         if source:
             st.image(source, width="stretch")
-            if st.button("✨ Read this page", type="primary", width="stretch"):
+            if st.button("Read this page", type="primary", width="stretch"):
                 with st.spinner("Gemma is reading the handwriting..."):
                     try:
                         t0 = time.perf_counter()
@@ -246,9 +254,8 @@ with tab_scan:
 
     with right:
         st.markdown(
-            '<div class="card"><h4>2 · Check and save</h4>'
-            '<div class="muted">The AI does the heavy lifting. You stay in control: '
-            "fix any cell before saving.</div></div>",
+            '<div class="step"><h4>2. Check and save</h4>'
+            "<p>Gemma fills in the table. Fix any cell that looks wrong, then save.</p></div>",
             unsafe_allow_html=True,
         )
         if "draft" in st.session_state:
@@ -256,7 +263,7 @@ with tab_scan:
             m1, m2, m3 = st.columns(3)
             m1.metric("Lines read", len(draft))
             m2.metric("Cash", rwf(draft.loc[draft["status"] == "paid", "total"].sum()))
-            m3.metric("Credit", rwf(draft.loc[draft["status"] == "credit", "total"].sum()))
+            m3.metric("On credit", rwf(draft.loc[draft["status"] == "credit", "total"].sum()))
             edited = st.data_editor(
                 draft,
                 num_rows="dynamic",
@@ -272,7 +279,7 @@ with tab_scan:
                     "status": st.column_config.SelectboxColumn("Status", options=["paid", "credit"]),
                 },
             )
-            if st.button("💾 Save to my records", type="primary", width="stretch"):
+            if st.button("Save to my records", type="primary", width="stretch"):
                 st.session_state.records = pd.concat(
                     [st.session_state.records, clean_frame(edited)], ignore_index=True
                 )
@@ -280,13 +287,13 @@ with tab_scan:
                 st.toast(f"Saved {len(edited)} entries", icon="✅")
                 st.rerun()
         else:
-            st.info("Your digital page will appear here after Gemma reads the photo.")
+            st.markdown('<p class="muted">The table appears here once Gemma has read your photo.</p>', unsafe_allow_html=True)
 
 # ---------- Tab 2: Dashboard ----------
 with tab_dash:
     df = st.session_state.records
     if df.empty:
-        st.info("No records yet. Scan a notebook page first.")
+        st.markdown('<p class="muted">No records yet. Scan your first notebook page to see your totals here.</p>', unsafe_allow_html=True)
         if st.button("Load sample data (for exploring the dashboard)"):
             st.session_state.records = clean_frame(pd.DataFrame(SAMPLE_ROWS, columns=COLUMNS))
             st.rerun()
@@ -294,16 +301,23 @@ with tab_dash:
         paid = df.loc[df["status"] == "paid", "total"].sum()
         credit = df.loc[df["status"] == "credit", "total"].sum()
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("💵 Cash sales", rwf(paid))
-        c2.metric("📝 Unpaid credit", rwf(credit))
-        c3.metric("🧾 Entries", len(df))
-        c4.metric("📈 Total business", rwf(paid + credit))
+        c1.metric("Cash sales", rwf(paid))
+        with c2.container(key="debt"):
+            st.metric("Owed to you", rwf(credit))
+        c3.metric("Entries", len(df))
+        c4.metric("Total sold", rwf(paid + credit))
 
         g1, g2 = st.columns([1.5, 1], gap="large")
         with g1:
             st.markdown("#### Top items by sales")
-            top = df.groupby("item")["total"].sum().sort_values(ascending=False).head(10)
-            st.bar_chart(top, color="#0E7C66", horizontal=True)
+            top = (df.groupby("item")["total"].sum().sort_values(ascending=False)
+                   .head(10).reset_index())
+            chart = alt.Chart(top).mark_bar(color="#1F3FA8", cornerRadiusEnd=3).encode(
+                x=alt.X("total:Q", title="RWF"),
+                y=alt.Y("item:N", sort="-x", title=None),
+                tooltip=["item", alt.Tooltip("total:Q", format=",.0f", title="RWF")],
+            ).properties(height=34 * len(top) + 20)
+            st.altair_chart(chart, width="stretch")
         with g2:
             st.markdown("#### Who owes me money")
             debtors = (
@@ -315,7 +329,7 @@ with tab_dash:
                 .rename(columns={"customer": "Customer", "total": "Owes (RWF)"})
             )
             if debtors.empty:
-                st.success("Nobody owes you money. 🎉")
+                st.markdown('<p class="muted">Nobody owes you money.</p>', unsafe_allow_html=True)
             else:
                 st.dataframe(debtors, hide_index=True, width="stretch")
 
@@ -323,7 +337,7 @@ with tab_dash:
             st.dataframe(df, hide_index=True, width="stretch")
         b1, b2 = st.columns([1, 4])
         b1.download_button(
-            "⬇️ Download CSV", df.to_csv(index=False), "daftari_records.csv", "text/csv"
+            "Download CSV", df.to_csv(index=False), "dukaai_records.csv", "text/csv"
         )
         if b2.button("Clear all records"):
             st.session_state.records = pd.DataFrame(columns=COLUMNS)
@@ -337,12 +351,12 @@ with tab_ask:
         st.info("Save some records first, then ask questions about your business.")
     else:
         st.markdown(
-            '<div class="muted">Try: “Who owes me money?” · “What sold most today?” · '
-            "“Combien j'ai vendu aujourd'hui ?”</div>",
+            '<p class="muted">Try asking: “Who owes me money?”, “What sold most today?” or '
+            "“Combien j'ai vendu aujourd'hui ?”</p>",
             unsafe_allow_html=True,
         )
         for role, msg in st.session_state.chat:
-            with st.chat_message(role, avatar="🧑🏾" if role == "user" else "📒"):
+            with st.chat_message(role, avatar="🧑🏾" if role == "user" else "📓"):
                 st.write(msg)
         q = st.chat_input("Ask about your business in English, Français or Kinyarwanda")
         if q:
@@ -356,7 +370,7 @@ with tab_ask:
             st.rerun()
 
 st.markdown(
-    f'<div class="footer">Built at Hacktoberfest Hack Day Kigali 2026 · Powered by Gemma 4 via the Gemini API · '
-    f'<a href="{REPO_URL}" target="_blank">Open source on GitHub</a></div>',
+    f'<div class="footer">Built at Hacktoberfest Hack Day Kigali 2026. Open source under MIT, '
+    f'<a href="{REPO_URL}" target="_blank">view the code on GitHub</a>.</div>',
     unsafe_allow_html=True,
 )
