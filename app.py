@@ -3,11 +3,14 @@
 Powered by Gemma 4 (gemma-4-26b-a4b-it) through the Gemini API.
 Setup: copy .env.example to .env, add your key, then run: streamlit run app.py
 """
+import io
 import json
 import os
 import re
+import time
 
 import pandas as pd
+from PIL import Image, ImageOps
 import streamlit as st
 from dotenv import load_dotenv
 from google import genai
@@ -117,12 +120,29 @@ def clean_frame(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def extract_entries(image_bytes: bytes, mime_type: str) -> pd.DataFrame:
+MAX_SIDE = int(os.getenv("MAX_IMAGE_SIDE", "1280"))
+
+
+def shrink_image(image_bytes: bytes) -> bytes:
+    """Phone photos are often 3 to 8 MB. Resize to MAX_SIDE px and JPEG-compress
+    so the upload and Gemma's image processing are much faster."""
+    img = Image.open(io.BytesIO(image_bytes))
+    img = ImageOps.exif_transpose(img).convert("RGB")  # fix phone rotation
+    img.thumbnail((MAX_SIDE, MAX_SIDE))
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=85, optimize=True)
+    return buf.getvalue()
+
+
+@st.cache_data(show_spinner=False, max_entries=50)
+def extract_entries(image_bytes: bytes) -> pd.DataFrame:
+    """Cached by image content: reading the same photo twice is instant."""
     client = get_client()
+    small = shrink_image(image_bytes)
     response = client.models.generate_content(
         model=MODEL,
         contents=[
-            types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+            types.Part.from_bytes(data=small, mime_type="image/jpeg"),
             EXTRACT_PROMPT,
         ],
     )
@@ -194,7 +214,9 @@ with tab_scan:
             if st.button("✨ Read this page", type="primary", width="stretch"):
                 with st.spinner("Gemma is reading the handwriting..."):
                     try:
-                        st.session_state.draft = extract_entries(source.getvalue(), source.type)
+                        t0 = time.perf_counter()
+                        st.session_state.draft = extract_entries(source.getvalue()).copy()
+                        st.caption(f"⚡ Read in {time.perf_counter() - t0:.1f} s")
                     except Exception as e:
                         st.error(f"Could not read the page: {e}")
 
